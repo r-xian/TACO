@@ -1,7 +1,7 @@
 import csv
 import datetime
 from collections import defaultdict
-
+import wandb
 import numpy as np
 import torch
 import torchvision
@@ -119,7 +119,7 @@ class MetersGroup(object):
 
 
 class Logger(object):
-    def __init__(self, log_dir, use_tb):
+    def __init__(self, log_dir, use_tb, args):
         self._log_dir = log_dir
         self._train_mg = MetersGroup(log_dir / 'train.csv',
                                      formating=COMMON_TRAIN_FORMAT)
@@ -129,7 +129,8 @@ class Logger(object):
             self._sw = SummaryWriter(str(log_dir / 'tb'))
         else:
             self._sw = None
-
+        wandb.init(project="visualRL", name=f'TACO_{args.task_name}_run_seed_{args.seed}')
+    
     def _try_sw_log(self, key, value, step):
         if self._sw is not None:
             self._sw.add_scalar(key, value, step)
@@ -141,10 +142,12 @@ class Logger(object):
         self._try_sw_log(key, value, step)
         mg = self._train_mg if key.startswith('train') else self._eval_mg
         mg.log(key, value)
+        wandb.log({key: value}, step=step)
 
     def log_metrics(self, metrics, step, ty):
         for key, value in metrics.items():
             self.log(f'{ty}/{key}', value, step)
+            
 
     def dump(self, step, ty=None):
         if ty is None or ty == 'eval':
