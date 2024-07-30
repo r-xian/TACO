@@ -2,4 +2,4 @@ defaults:
   - medium
   - _self_
 
-task_name: cheetah_run
+task_name: finger_turn_easy
