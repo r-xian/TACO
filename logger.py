@@ -127,9 +127,9 @@ class Logger(object):
                                     formating=COMMON_EVAL_FORMAT)
         if use_tb:
             self._sw = SummaryWriter(str(log_dir / 'tb'))
+            wandb.init(project="visualRL", name=f'TACO_{args.task_name}_run_seed_{args.seed}')
         else:
             self._sw = None
-        wandb.init(project="visualRL", name=f'TACO_{args.task_name}_run_seed_{args.seed}')
     
     def _try_sw_log(self, key, value, step):
         if self._sw is not None:
