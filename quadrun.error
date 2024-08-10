@@ -1,0 +1,22 @@
+srun: ROUTE: split_hostlist: hl=bun005 tree_width 0
+libEGL warning: egl: failed to create dri2 screen
+libEGL warning: egl: failed to create dri2 screen
+libEGL warning: egl: failed to create dri2 screen
+libEGL warning: egl: failed to create dri2 screen
+libEGL warning: egl: failed to create dri2 screen
+libEGL warning: egl: failed to create dri2 screen
+libEGL warning: egl: failed to create dri2 screen
+libEGL warning: egl: failed to create dri2 screen
+libEGL warning: egl: failed to create dri2 screen
+libEGL warning: egl: failed to create dri2 screen
+libEGL warning: egl: failed to create dri2 screen
+libEGL warning: egl: failed to create dri2 screen
+wandb: Currently logged in as: rodxiang2. Use `wandb login --relogin` to force relogin
+wandb: wandb version 0.17.5 is available!  To upgrade, please run:
+wandb:  $ pip install wandb --upgrade
+wandb: Tracking run with wandb version 0.17.0
+wandb: Run data is saved locally in /home/s4642506/TACO/exp_local/quadruped_run_1/wandb/run-20240807_173620-l5tnibdg
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run TACO_quadruped_run_run_seed_1
+wandb: ⭐️ View project at https://wandb.ai/rodxiang2/visualRL
+wandb: 🚀 View run at https://wandb.ai/rodxiang2/visualRL/runs/l5tnibdg
