@@ -5,7 +5,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 import utils
 import itertools
-
+import logging
+debug = logging.getLogger(__name__)
 
 class RandomShiftsAug(nn.Module):
     def __init__(self, pad):
@@ -306,11 +307,20 @@ class TACOAgent:
     
     def update_taco(self, obs, action, action_seq, next_obs, reward):
         metrics = dict()
+        debug.info(f"START: update_taco()")
+        debug.info(f"obs shape: {obs.shape}")
+        debug.info(f"action shape: {action.shape}")
+        debug.info(f"action_seq shape: {action_seq.shape}")
+        debug.info(f"next_obs shape: {next_obs.shape}")
         
         obs_anchor = self.aug(obs.float())
         obs_pos = self.aug(obs.float())
+        debug.info(f"obs_anchor shape: {obs_anchor.shape}")
+        debug.info(f"obs_pos shape: {obs_pos.shape}")
         z_a = self.TACO.encode(obs_anchor)
         z_pos = self.TACO.encode(obs_pos, ema=True)
+        debug.info(f"z_a shape: {z_a.shape}")
+        debug.info(f"z_pos shape: {z_pos.shape}")
         ### Compute CURL loss
         if self.curl:
             logits = self.TACO.compute_logits(z_a, z_pos)
@@ -332,8 +342,11 @@ class TACOAgent:
         
         ### Compute TACO loss
         next_z = self.TACO.encode(self.aug(next_obs.float()), ema=True)
+        debug.info(f"next_z shape: {next_z.shape}")
         curr_za = self.TACO.project_sa(z_a, action_seq_en) 
+        debug.info(f"curr_za shape: {curr_za.shape}")
         logits = self.TACO.compute_logits(curr_za, next_z)
+        debug.info(f"logits shape: {logits.shape}")
         labels = torch.arange(logits.shape[0]).long().to(self.device)
         taco_loss = self.cross_entropy_loss(logits, labels)
             
@@ -346,8 +359,6 @@ class TACOAgent:
             metrics['taco_loss']  = taco_loss.item()
         return metrics
         
-        
-    
     def update(self, replay_iter, step):
         metrics = dict()
         if step % self.update_every_steps != 0:
@@ -368,16 +379,16 @@ class TACOAgent:
         if self.use_tb:
             metrics['batch_reward'] = reward.mean().item()
 
-        # update critic
-        metrics.update(
-            self.update_critic(obs_en, action, reward, discount, next_obs_en, step))
+        # # update critic
+        # metrics.update(self.update_critic(obs_en, action, reward, discount, next_obs_en, step))
 
-        # update actor
-        metrics.update(self.update_actor(obs_en.detach(), step))
+        # # update actor
+        # metrics.update(self.update_actor(obs_en.detach(), step))
 
-        # update critic target
-        utils.soft_update_params(self.critic, self.critic_target,
-                                 self.critic_target_tau)
+        # # update critic target
+        # utils.soft_update_params(self.critic, self.critic_target,self.critic_target_tau)
+        
+        #update TACO
         
         metrics.update(self.update_taco(obs, action, action_seq, r_next_obs, reward))
 

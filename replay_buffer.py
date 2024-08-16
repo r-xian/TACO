@@ -9,6 +9,8 @@ import torch
 import torch.nn as nn
 from torch.utils.data import IterableDataset
 
+import logging
+debug = logging.getLogger(__name__)
 
 def episode_len(episode):
     # subtract -1 because the dummy first transition
