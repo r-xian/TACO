@@ -307,55 +307,65 @@ class TACOAgent:
     
     def update_taco(self, obs, action, action_seq, next_obs, reward):
         metrics = dict()
-        debug.info(f"START: update_taco()")
-        debug.info(f"obs shape: {obs.shape}")
-        debug.info(f"action shape: {action.shape}")
-        debug.info(f"action_seq shape: {action_seq.shape}")
-        debug.info(f"next_obs shape: {next_obs.shape}")
+        debug.info(f"START:         update_taco()")
+        debug.info(f"1.     Inputs")
+        debug.info(f"1.1 obs shape: {obs.shape}")
+        debug.info(f"1.2 action shape: {action.shape}")
+        debug.info(f"1.3 action_seq shape: {action_seq.shape}")
+        debug.info(f"1.4 next_obs shape: {next_obs.shape}")
         
+        # Augment obs for CURL loss
+        debug.info(f"2.     Augmenting obs")
         obs_anchor = self.aug(obs.float())
         obs_pos = self.aug(obs.float())
-        debug.info(f"obs_anchor shape: {obs_anchor.shape}")
-        debug.info(f"obs_pos shape: {obs_pos.shape}")
+        debug.info(f"2.1 obs_anchor shape: {obs_anchor.shape}")
+        debug.info(f"2.2 obs_pos shape: {obs_pos.shape}")
         
         #z_a are single observations, same with z_pos
+        debug.info(f"3.     Encoding obs")
         z_a = self.TACO.encode(obs_anchor)
         z_pos = self.TACO.encode(obs_pos, ema=True)
-        debug.info(f"z_a shape: {z_a.shape}")
-        debug.info(f"z_pos shape: {z_pos.shape}")
+        debug.info(f"3.1 z_a shape: {z_a.shape}")
+        debug.info(f"3.2 z_pos shape: {z_pos.shape}")
         ### Compute CURL loss
+        debug.info(f"4.     Computing CURL Loss")
         if self.curl:
             logits = self.TACO.compute_logits(z_a, z_pos)
-            debug.info(f"logits shape: {logits.shape}")
+            debug.info(f"4.1 logits shape: {logits.shape}")
             labels = torch.arange(logits.shape[0]).long().to(self.device)
-            debug.info(f"labels shape: {labels.shape}")
+            debug.info(f"4.2 labels shape: {labels.shape}")
             curl_loss = self.cross_entropy_loss(logits, labels)
         else:
             curl_loss = torch.tensor(0.)
         
         ### Compute action encodings
+        debug.info(f"5.     Encoding action sequence")
         action_seq_en = self.TACO.act_tok(action_seq, seq=True)
-        debug.info(f"action_seq_en shape: {action_seq_en.shape}")
+        debug.info(f"5.1 action_seq_en shape: {action_seq_en.shape}")
         
         ### Compute reward prediction loss
+        debug.info(f"6.     Computing reward prediction loss")
         if self.reward:
             reward_pred = self.TACO.reward(torch.concat([z_a, action_seq_en], dim=-1))
-            debug.info(f"reward_pred shape: {reward_pred.shape}")
+            debug.info(f"6.1 reward_pred shape: {reward_pred.shape}")
             reward_loss = F.mse_loss(reward_pred, reward)
         else:
             reward_loss = torch.tensor(0.)
         
         ### Compute TACO loss
+        debug.info(f"7.     Computing TACO loss")
         next_z = self.TACO.encode(self.aug(next_obs.float()), ema=True)
-        debug.info(f"next_z shape: {next_z.shape}")
+        debug.info(f"7.1 next_z shape: {next_z.shape}")
         curr_za = self.TACO.project_sa(z_a, action_seq_en) 
-        debug.info(f"curr_za shape: {curr_za.shape}")
+        debug.info(f"7.2 curr_za shape: {curr_za.shape}")
         logits = self.TACO.compute_logits(curr_za, next_z)
-        debug.info(f"logits shape: {logits.shape}")
+        debug.info(f"7.3 logits shape: {logits.shape}")
         labels = torch.arange(logits.shape[0]).long().to(self.device)
-        debug.info(f"labels shape: {labels.shape}")
+        debug.info(f"7.4 labels shape: {labels.shape}")
         taco_loss = self.cross_entropy_loss(logits, labels)
-            
+        
+        debug.info(f"END:       update_taco()")
+        
         self.taco_opt.zero_grad()
         (taco_loss + curl_loss + reward_loss).backward()
         self.taco_opt.step()
