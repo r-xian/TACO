@@ -371,7 +371,8 @@ class TACOAgent:
             return metrics
         
         batch = next(replay_iter)
-        debug.info(f"batch: {batch.shape}")
+        debug.info(f"batch: {len(batch)}")
+        debug.info(f"batch[0]: {batch[0].shape}")
         obs, action, action_seq, reward, discount, next_obs, r_next_obs = utils.to_torch(
             batch, self.device)
 
