@@ -82,16 +82,22 @@ class TACO(nn.Module):
             nn.ReLU(inplace=True),
             nn.Linear(hidden_dim, feature_dim)
         )
-        summary(self.proj_sa.to(device=device), (1, feature_dim + latent_a_dim*multistep))
-        debug.info(f"Projection Action Layer Dimensions -> similar to reward layer")
         
+        # summary(self.proj_sa.to(device=device), (1, feature_dim + latent_a_dim*multistep))
+        debug.info(f"\n   self.proj_sa")
+        debug.info(f" feature_dim: {feature_dim}")
+        debug.info(f" latent_a_dim: {latent_a_dim}")
+        debug.info(f" multistep: {multistep}")
+        debug.info(f" hidden_dim: {hidden_dim}")
+        debug.info(f" input dim = feature_dim + latent_a_dim*multistep {feature_dim + latent_a_dim*multistep}\n")
+                
         self.act_tok = act_tok
         
         self.proj_s = nn.Sequential(nn.Linear(repr_dim, feature_dim),
                                    nn.LayerNorm(feature_dim), nn.Tanh())
-        summary(self.proj_s.to(device=device), (1, repr_dim))
+        # summary(self.proj_s.to(device=device), (1, repr_dim))
         
-        debug.info(f"Projection Layer Dimensions")
+        debug.info(f"\n   self.proj_s dimensions")
         debug.info(f" repr_dim: {repr_dim}")
         debug.info(f" feature_dim: {feature_dim}")
         
@@ -101,16 +107,16 @@ class TACO(nn.Module):
             nn.ReLU(inplace=True),
             nn.Linear(hidden_dim, 1)
         )
-        summary(self.reward.to(device=device), (1, feature_dim+latent_a_dim*multistep))
-        debug.info(f"Reward Layer Dimensions")
+        
+        # summary(self.reward.to(device=device), (1, feature_dim+latent_a_dim*multistep))
+        debug.info(f"\n   self.reward Dimensions")
         debug.info(f" feature_dim: {feature_dim}")
         debug.info(f" latent_a_dim: {latent_a_dim}")
         debug.info(f" multistep: {multistep}")
         debug.info(f" hidden_dim: {hidden_dim}")
-        debug.info(f" input dim = feature_dim+latent_a_dim*multistep {feature_dim+latent_a_dim*multistep}")
+        debug.info(f" input dim = feature_dim+latent_a_dim*multistep {feature_dim+latent_a_dim*multistep}\n")
         
         self.W = nn.Parameter(torch.rand(feature_dim, feature_dim))
-        summary(self.W.to(device=device), (1, feature_dim))
         
         self.apply(utils.weight_init)
     
@@ -122,13 +128,16 @@ class TACO(nn.Module):
         """
         if ema:
             with torch.no_grad():
-                z_out = self.proj_s(self.encoder(x))
+                x = self.encoder(x)
+                debug.info(f"proj_s input size -> x shape {x.shape}")
+                z_out = self.proj_s(x)
         else:
             z_out = self.proj_s(self.encoder(x))
         return z_out
     
     def project_sa(self, s, a):
         x = torch.concat([s,a], dim=-1)
+        debug.info(f"project_sa -> input size -> x shape {x.shape}")
         return self.proj_sa(x)
         
     def compute_logits(self, z_a, z_pos):
@@ -372,6 +381,7 @@ class TACOAgent:
         ### Compute reward prediction loss
         debug.info(f"6.     Computing reward prediction loss")
         if self.reward:
+            debug.info(f'Reward layer input: {torch.concat([z_a, action_seq_en], dim=-1).shape}')
             reward_pred = self.TACO.reward(torch.concat([z_a, action_seq_en], dim=-1))
             debug.info(f"6.1 reward_pred shape: {reward_pred.shape}\n")
             reward_loss = F.mse_loss(reward_pred, reward)
