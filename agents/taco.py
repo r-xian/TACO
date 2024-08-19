@@ -81,17 +81,28 @@ class TACO(nn.Module):
             nn.ReLU(inplace=True),
             nn.Linear(hidden_dim, feature_dim)
         )
+        debug.info(f"Projection Action Layer Dimensions -> similar to reward layer")
         
         self.act_tok = act_tok
         
         self.proj_s = nn.Sequential(nn.Linear(repr_dim, feature_dim),
                                    nn.LayerNorm(feature_dim), nn.Tanh())
+        debug.info(f"Projection Layer Dimensions")
+        debug.info(f" repr_dim: {repr_dim}")
+        debug.info(f" feature_dim: {feature_dim}")
+        
         
         self.reward = nn.Sequential(
             nn.Linear(feature_dim+latent_a_dim*multistep, hidden_dim), 
             nn.ReLU(inplace=True),
             nn.Linear(hidden_dim, 1)
         )
+        debug.info(f"Reward Layer Dimensions")
+        debug.info(f" feature_dim: {feature_dim}")
+        debug.info(f" latent_a_dim: {latent_a_dim}")
+        debug.info(f" multistep: {multistep}")
+        debug.info(f" hidden_dim: {hidden_dim}")
+        debug.info(f" input dim = feature_dim+latent_a_dim*multistep {feature_dim+latent_a_dim*multistep}")
         
         self.W = nn.Parameter(torch.rand(feature_dim, feature_dim))
         self.apply(utils.weight_init)
@@ -120,10 +131,14 @@ class TACO(nn.Module):
         - negatives are all other elements
         - to compute loss use multiclass cross entropy with identity matrix for labels
         """
-        
+        debug.info(f"START:         compute_logits()")
         Wz = torch.matmul(self.W, z_pos.T)  # (z_dim,B)
+        debug.info(f'Wz shape: {Wz.shape}')
         logits = torch.matmul(z_a, Wz)  # (B,B)
+        debug.info(f'logits shape: {logits.shape}')
         logits = logits - torch.max(logits, 1)[0][:, None]
+        debug.info(f'logits - max shape: {logits.shape}')
+        debug.info(f"END:       compute_logits()\n")
         return logits
     
     
@@ -204,6 +219,10 @@ class TACOAgent:
             latent_a_dim = int(action_shape[0]*1.25)+1
         ### Create action embeddings
         self.act_tok = utils.ActionEncoding(action_shape[0], latent_a_dim, multistep)
+        debug.info(f"act_tok dimensions")
+        debug.info(f"latent_a_dim: {latent_a_dim}")
+        debug.info(f"action_shape: {action_shape[0]}")
+        
         self.encoder = Encoder(obs_shape, feature_dim).to(device)
         
         self.actor = Actor(self.encoder.repr_dim, action_shape, feature_dim,
@@ -354,11 +373,11 @@ class TACOAgent:
         
         ### Compute TACO loss
         debug.info(f"7.     Computing TACO loss")
-        next_z = self.TACO.encode(self.aug(next_obs.float()), ema=True)
-        debug.info(f"7.1 next_z shape: {next_z.shape}")
+        next_z_pos = self.TACO.encode(self.aug(next_obs.float()), ema=True)
+        debug.info(f"7.1 next_z_pos shape: {next_z_pos.shape}")
         curr_za = self.TACO.project_sa(z_a, action_seq_en) 
         debug.info(f"7.2 curr_za shape: {curr_za.shape}")
-        logits = self.TACO.compute_logits(curr_za, next_z)
+        logits = self.TACO.compute_logits(curr_za, next_z_pos)
         debug.info(f"7.3 logits shape: {logits.shape}")
         labels = torch.arange(logits.shape[0]).long().to(self.device)
         debug.info(f"7.4 labels shape: {labels.shape}\n")
