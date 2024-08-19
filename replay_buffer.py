@@ -11,7 +11,7 @@ from torch.utils.data import IterableDataset
 
 import logging
 debug = logging.getLogger(__name__)
-
+debug.setLevel(logging.CRITICAL)
 def episode_len(episode):
     # subtract -1 because the dummy first transition
     return next(iter(episode.values())).shape[0] - 1
