@@ -120,6 +120,7 @@ class MetersGroup(object):
 
 class Logger(object):
     def __init__(self, log_dir, use_tb, args):
+        self.use_tb = use_tb
         self._log_dir = log_dir
         self._train_mg = MetersGroup(log_dir / 'train.csv',
                                      formating=COMMON_TRAIN_FORMAT)
@@ -142,7 +143,8 @@ class Logger(object):
         self._try_sw_log(key, value, step)
         mg = self._train_mg if key.startswith('train') else self._eval_mg
         mg.log(key, value)
-        wandb.log({key: value}, step=step)
+        if self.use_tb:
+            wandb.log({key: value}, step=step)
 
     def log_metrics(self, metrics, step, ty):
         for key, value in metrics.items():
