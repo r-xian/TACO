@@ -317,6 +317,8 @@ class TACOAgent:
         obs_pos = self.aug(obs.float())
         debug.info(f"obs_anchor shape: {obs_anchor.shape}")
         debug.info(f"obs_pos shape: {obs_pos.shape}")
+        
+        #z_a are single observations, same with z_pos
         z_a = self.TACO.encode(obs_anchor)
         z_pos = self.TACO.encode(obs_pos, ema=True)
         debug.info(f"z_a shape: {z_a.shape}")
@@ -324,18 +326,21 @@ class TACOAgent:
         ### Compute CURL loss
         if self.curl:
             logits = self.TACO.compute_logits(z_a, z_pos)
+            debug.info(f"logits shape: {logits.shape}")
             labels = torch.arange(logits.shape[0]).long().to(self.device)
+            debug.info(f"labels shape: {labels.shape}")
             curl_loss = self.cross_entropy_loss(logits, labels)
         else:
             curl_loss = torch.tensor(0.)
         
         ### Compute action encodings
-        action_en = self.TACO.act_tok(action, seq=False) 
         action_seq_en = self.TACO.act_tok(action_seq, seq=True)
+        debug.info(f"action_seq_en shape: {action_seq_en.shape}")
         
         ### Compute reward prediction loss
         if self.reward:
             reward_pred = self.TACO.reward(torch.concat([z_a, action_seq_en], dim=-1))
+            debug.info(f"reward_pred shape: {reward_pred.shape}")
             reward_loss = F.mse_loss(reward_pred, reward)
         else:
             reward_loss = torch.tensor(0.)
@@ -348,6 +353,7 @@ class TACOAgent:
         logits = self.TACO.compute_logits(curr_za, next_z)
         debug.info(f"logits shape: {logits.shape}")
         labels = torch.arange(logits.shape[0]).long().to(self.device)
+        debug.info(f"labels shape: {labels.shape}")
         taco_loss = self.cross_entropy_loss(logits, labels)
             
         self.taco_opt.zero_grad()
@@ -365,6 +371,7 @@ class TACOAgent:
             return metrics
         
         batch = next(replay_iter)
+        debug.info(f"batch: {batch.shape}")
         obs, action, action_seq, reward, discount, next_obs, r_next_obs = utils.to_torch(
             batch, self.device)
 

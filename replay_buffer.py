@@ -150,22 +150,50 @@ class ReplayBuffer(IterableDataset):
             self._try_fetch()
         except:
             traceback.print_exc()
+        debug.info(f'START: _sample()')
+        debug.info(f'Loaded {len(self._episodes)} episodes')
+            
         self._samples_since_last_fetch += 1
         episode = self._sample_episode()
+        debug.info(f'Sample episode with {episode_len(episode)} transitions')
+
         # add +1 for the first dummy transition
         n_step = max(self._nstep, self._multistep)
+        debug.info(f'n_step {n_step}')
+        debug.info(f'multistep {self._multistep}')
+        debug.info(f'Sample n-step {n_step.shape}')
+        
         idx = np.random.randint(0, episode_len(episode) - n_step + 1) + 1
+        debug.info(f'Sample idx {idx.shape}')
+        
+        
         obs = episode['observation'][idx - 1]
         r_next_obs = episode['observation'][idx + self._multistep - 1]
         action = episode['action'][idx]
+        debug.info(f'Sample obs {obs.shape}')
+        debug.info(f'Sample r_next_obs {r_next_obs.shape}')
+        debug.info(f'Sample action {action.shape}')
+        
         action_seq = np.concatenate([episode['action'][idx+i][None, :] for i in range(self._multistep)])
         next_obs = episode['observation'][idx + self._nstep - 1]
+        debug.info(f'Sample action_seq {action_seq.shape}')
+        debug.info(f'Sample next_obs {next_obs.shape}')
+        
         reward = np.zeros_like(episode['reward'][idx])
         discount = np.ones_like(episode['discount'][idx])
+        debug.info(f'Sample reward {reward.shape}')
+        debug.info(f'Sample discount {discount.shape}')
+        
         for i in range(self._nstep):
             step_reward = episode['reward'][idx + i]
             reward += discount * step_reward
             discount *= episode['discount'][idx + i] * self._discount
+        
+        debug.info(f'Sample reward {reward.shape}')
+        debug.info(f'Sample discount {discount.shape}')
+        debug.info(f'step_reward {step_reward.shape}')
+        
+        debug.info(f'END: _sample()')
         return (obs, action, action_seq, reward, discount, next_obs, r_next_obs)
 
     def __iter__(self):
