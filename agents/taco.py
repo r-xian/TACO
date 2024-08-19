@@ -84,7 +84,7 @@ class TACO(nn.Module):
         )
         
         # summary(self.proj_sa.to(device=device), (1, feature_dim + latent_a_dim*multistep))
-        debug.info(f"\n   self.proj_sa")
+        debug.info(f"   self.proj_sa")
         debug.info(f" feature_dim: {feature_dim}")
         debug.info(f" latent_a_dim: {latent_a_dim}")
         debug.info(f" multistep: {multistep}")
@@ -97,9 +97,9 @@ class TACO(nn.Module):
                                    nn.LayerNorm(feature_dim), nn.Tanh())
         # summary(self.proj_s.to(device=device), (1, repr_dim))
         
-        debug.info(f"\n   self.proj_s dimensions")
+        debug.info(f"   self.proj_s dimensions")
         debug.info(f" repr_dim: {repr_dim}")
-        debug.info(f" feature_dim: {feature_dim}")
+        debug.info(f" feature_dim: {feature_dim}\n")
         
         
         self.reward = nn.Sequential(
@@ -109,7 +109,7 @@ class TACO(nn.Module):
         )
         
         # summary(self.reward.to(device=device), (1, feature_dim+latent_a_dim*multistep))
-        debug.info(f"\n   self.reward Dimensions")
+        debug.info(f"   self.reward Dimensions")
         debug.info(f" feature_dim: {feature_dim}")
         debug.info(f" latent_a_dim: {latent_a_dim}")
         debug.info(f" multistep: {multistep}")
