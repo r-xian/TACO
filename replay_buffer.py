@@ -161,7 +161,7 @@ class ReplayBuffer(IterableDataset):
         n_step = max(self._nstep, self._multistep)
         debug.info(f'n_step {n_step}')
         debug.info(f'multistep {self._multistep}')
-        debug.info(f'Sample n-step {n_step.shape}')
+        debug.info(f'self._nstep {self._nstep}')
         
         idx = np.random.randint(0, episode_len(episode) - n_step + 1) + 1
         debug.info(f'Sample idx {idx.shape}')
