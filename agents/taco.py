@@ -6,6 +6,7 @@ import torch.nn.functional as F
 import utils
 import itertools
 import logging
+from torchsummary import summary
 debug = logging.getLogger(__name__)
 
 class RandomShiftsAug(nn.Module):
@@ -81,12 +82,15 @@ class TACO(nn.Module):
             nn.ReLU(inplace=True),
             nn.Linear(hidden_dim, feature_dim)
         )
+        summary(self.proj_sa, (1, feature_dim + latent_a_dim*multistep))
         debug.info(f"Projection Action Layer Dimensions -> similar to reward layer")
         
         self.act_tok = act_tok
         
         self.proj_s = nn.Sequential(nn.Linear(repr_dim, feature_dim),
                                    nn.LayerNorm(feature_dim), nn.Tanh())
+        summary(self.proj_s, (1, repr_dim))
+        
         debug.info(f"Projection Layer Dimensions")
         debug.info(f" repr_dim: {repr_dim}")
         debug.info(f" feature_dim: {feature_dim}")
@@ -97,6 +101,7 @@ class TACO(nn.Module):
             nn.ReLU(inplace=True),
             nn.Linear(hidden_dim, 1)
         )
+        summary(self.reward, (1, feature_dim+latent_a_dim*multistep))
         debug.info(f"Reward Layer Dimensions")
         debug.info(f" feature_dim: {feature_dim}")
         debug.info(f" latent_a_dim: {latent_a_dim}")
@@ -105,6 +110,8 @@ class TACO(nn.Module):
         debug.info(f" input dim = feature_dim+latent_a_dim*multistep {feature_dim+latent_a_dim*multistep}")
         
         self.W = nn.Parameter(torch.rand(feature_dim, feature_dim))
+        summary(self.W, (1, feature_dim))
+        
         self.apply(utils.weight_init)
     
     def encode(self, x, ema=False):
