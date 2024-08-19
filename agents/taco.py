@@ -312,28 +312,28 @@ class TACOAgent:
         debug.info(f"1.1 obs shape: {obs.shape}")
         debug.info(f"1.2 action shape: {action.shape}")
         debug.info(f"1.3 action_seq shape: {action_seq.shape}")
-        debug.info(f"1.4 next_obs shape: {next_obs.shape}")
+        debug.info(f"1.4 next_obs shape: {next_obs.shape}\n")
         
         # Augment obs for CURL loss
         debug.info(f"2.     Augmenting obs")
         obs_anchor = self.aug(obs.float())
         obs_pos = self.aug(obs.float())
         debug.info(f"2.1 obs_anchor shape: {obs_anchor.shape}")
-        debug.info(f"2.2 obs_pos shape: {obs_pos.shape}")
+        debug.info(f"2.2 obs_pos shape: {obs_pos.shape}\n")
         
         #z_a are single observations, same with z_pos
         debug.info(f"3.     Encoding obs")
         z_a = self.TACO.encode(obs_anchor)
         z_pos = self.TACO.encode(obs_pos, ema=True)
         debug.info(f"3.1 z_a shape: {z_a.shape}")
-        debug.info(f"3.2 z_pos shape: {z_pos.shape}")
+        debug.info(f"3.2 z_pos shape: {z_pos.shape}\n")
         ### Compute CURL loss
         debug.info(f"4.     Computing CURL Loss")
         if self.curl:
             logits = self.TACO.compute_logits(z_a, z_pos)
             debug.info(f"4.1 logits shape: {logits.shape}")
             labels = torch.arange(logits.shape[0]).long().to(self.device)
-            debug.info(f"4.2 labels shape: {labels.shape}")
+            debug.info(f"4.2 labels shape: {labels.shape}\n")
             curl_loss = self.cross_entropy_loss(logits, labels)
         else:
             curl_loss = torch.tensor(0.)
@@ -341,13 +341,13 @@ class TACOAgent:
         ### Compute action encodings
         debug.info(f"5.     Encoding action sequence")
         action_seq_en = self.TACO.act_tok(action_seq, seq=True)
-        debug.info(f"5.1 action_seq_en shape: {action_seq_en.shape}")
+        debug.info(f"5.1 action_seq_en shape: {action_seq_en.shape}\n")
         
         ### Compute reward prediction loss
         debug.info(f"6.     Computing reward prediction loss")
         if self.reward:
             reward_pred = self.TACO.reward(torch.concat([z_a, action_seq_en], dim=-1))
-            debug.info(f"6.1 reward_pred shape: {reward_pred.shape}")
+            debug.info(f"6.1 reward_pred shape: {reward_pred.shape}\n")
             reward_loss = F.mse_loss(reward_pred, reward)
         else:
             reward_loss = torch.tensor(0.)
@@ -361,10 +361,10 @@ class TACOAgent:
         logits = self.TACO.compute_logits(curr_za, next_z)
         debug.info(f"7.3 logits shape: {logits.shape}")
         labels = torch.arange(logits.shape[0]).long().to(self.device)
-        debug.info(f"7.4 labels shape: {labels.shape}")
+        debug.info(f"7.4 labels shape: {labels.shape}\n")
         taco_loss = self.cross_entropy_loss(logits, labels)
         
-        debug.info(f"END:       update_taco()")
+        debug.info(f"END:       update_taco()\n")
         
         self.taco_opt.zero_grad()
         (taco_loss + curl_loss + reward_loss).backward()
