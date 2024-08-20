@@ -226,19 +226,17 @@ class TACOAgent:
         
         self.encoder = Encoder(obs_shape, feature_dim).to(device)
         
-        self.actor = Actor(self.encoder.repr_dim, action_shape, feature_dim,
-                           hidden_dim).to(device)
-        self.critic = Critic(self.encoder.repr_dim, latent_a_dim, feature_dim,
-                             hidden_dim).to(device)
-        self.critic_target = Critic(self.encoder.repr_dim, latent_a_dim,
-                                    feature_dim, hidden_dim).to(device)
+        self.actor = Actor(self.encoder.repr_dim, action_shape, feature_dim, hidden_dim).to(device)
+        self.critic = Critic(self.encoder.repr_dim, latent_a_dim, feature_dim,hidden_dim).to(device)
+        
+        self.critic_target = Critic(self.encoder.repr_dim, latent_a_dim, feature_dim, hidden_dim).to(device)
         self.critic_target.load_state_dict(self.critic.state_dict())
+        
         self.TACO = TACO(self.encoder.repr_dim, feature_dim, action_shape, latent_a_dim, hidden_dim, self.act_tok, self.encoder, multistep, device).to(device)
         
         ### State & Action Encoders
         parameters = itertools.chain(self.encoder.parameters(),
-                                     self.act_tok.parameters(),
-        )
+                                     self.act_tok.parameters(),)
         self.encoder_opt = torch.optim.Adam(parameters, lr=encoder_lr)
         self.actor_opt = torch.optim.Adam(self.actor.parameters(), lr=lr)
         self.critic_opt = torch.optim.Adam(self.critic.parameters(), lr=lr)
@@ -419,10 +417,10 @@ class TACOAgent:
             metrics['batch_reward'] = reward.mean().item()
 
         # # update critic
-        # metrics.update(self.update_critic(obs_en, action, reward, discount, next_obs_en, step))
+        metrics.update(self.update_critic(obs_en, action, reward, discount, next_obs_en, step))
 
         # # update actor
-        # metrics.update(self.update_actor(obs_en.detach(), step))
+        metrics.update(self.update_actor(obs_en.detach(), step))
 
         # # update critic target
         # utils.soft_update_params(self.critic, self.critic_target,self.critic_target_tau)
