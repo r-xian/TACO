@@ -82,14 +82,12 @@ class TACO(nn.Module):
             nn.ReLU(inplace=True),
             nn.Linear(hidden_dim, feature_dim)
         )
-        debug.info(f"   self.proj_sa - dimensions")
         summary(self.proj_sa.to(device=device), (1024, 56))
         
         self.act_tok = act_tok
         
         self.proj_s = nn.Sequential(nn.Linear(repr_dim, feature_dim),
                                    nn.LayerNorm(feature_dim), nn.Tanh())
-        debug.info(f"   self.proj_s - dimensions")
         summary(self.proj_s.to(device=device), (1024, 39200))
         
         
@@ -99,7 +97,6 @@ class TACO(nn.Module):
             nn.ReLU(inplace=True),
             nn.Linear(hidden_dim, 1)
         )
-        debug.info(f"   self.reward - dimensions")
         summary(self.reward.to(device=device), (1024, 56))
         
         self.W = nn.Parameter(torch.rand(feature_dim, feature_dim))
@@ -115,7 +112,6 @@ class TACO(nn.Module):
         if ema:
             with torch.no_grad():
                 x = self.encoder(x)
-                debug.info(f"proj_s input size -> x shape {x.shape}")
                 z_out = self.proj_s(x)
         else:
             z_out = self.proj_s(self.encoder(x))
@@ -123,7 +119,6 @@ class TACO(nn.Module):
     
     def project_sa(self, s, a):
         x = torch.concat([s,a], dim=-1)
-        debug.info(f"project_sa -> input size -> x shape {x.shape}")
         return self.proj_sa(x)
         
     def compute_logits(self, z_a, z_pos):
@@ -133,14 +128,9 @@ class TACO(nn.Module):
         - negatives are all other elements
         - to compute loss use multiclass cross entropy with identity matrix for labels
         """
-        debug.info(f"START:         compute_logits()")
         Wz = torch.matmul(self.W, z_pos.T)  # (z_dim,B)
-        debug.info(f'Wz shape: {Wz.shape}')
         logits = torch.matmul(z_a, Wz)  # (B,B)
-        debug.info(f'logits shape: {logits.shape}')
         logits = logits - torch.max(logits, 1)[0][:, None]
-        debug.info(f'logits - max shape: {logits.shape}')
-        debug.info(f"END:       compute_logits()\n")
         return logits
     
     
@@ -221,7 +211,6 @@ class TACOAgent:
             latent_a_dim = int(action_shape[0]*1.25)+1
         ### Create action embeddings
         self.act_tok = utils.ActionEncoding(action_shape[0], latent_a_dim, multistep)
-        debug.info(f"act_tok - dimensions")
         summary(self.act_tok.to(device=device), (1024,3,1))
         
         self.encoder = Encoder(obs_shape, feature_dim).to(device)
@@ -325,65 +314,39 @@ class TACOAgent:
     
     def update_taco(self, obs, action, action_seq, next_obs, reward):
         metrics = dict()
-        debug.info(f"START:         update_taco()")
-        debug.info(f"1.     Inputs")
-        debug.info(f"1.1 obs shape: {obs.shape}")
-        debug.info(f"1.2 action shape: {action.shape}")
-        debug.info(f"1.3 action_seq shape: {action_seq.shape}")
-        debug.info(f"1.4 next_obs shape: {next_obs.shape}\n")
-        
         # Augment obs for CURL loss
-        debug.info(f"2.     Augmenting obs")
         obs_anchor = self.aug(obs.float())
         obs_pos = self.aug(obs.float())
-        debug.info(f"2.1 obs_anchor shape: {obs_anchor.shape}")
-        debug.info(f"2.2 obs_pos shape: {obs_pos.shape}\n")
         
         #z_a are single observations, same with z_pos
-        debug.info(f"3.     Encoding obs")
         z_a = self.TACO.encode(obs_anchor)
         z_pos = self.TACO.encode(obs_pos, ema=True)
-        debug.info(f"3.1 z_a shape: {z_a.shape}")
-        debug.info(f"3.2 z_pos shape: {z_pos.shape}\n")
         ### Compute CURL loss
-        debug.info(f"4.     Computing CURL Loss")
         if self.curl:
             logits = self.TACO.compute_logits(z_a, z_pos)
-            debug.info(f"4.1 logits shape: {logits.shape}")
             labels = torch.arange(logits.shape[0]).long().to(self.device)
-            debug.info(f"4.2 labels shape: {labels.shape}\n")
             curl_loss = self.cross_entropy_loss(logits, labels)
         else:
             curl_loss = torch.tensor(0.)
         
         ### Compute action encodings
-        debug.info(f"5.     Encoding action sequence")
         action_seq_en = self.TACO.act_tok(action_seq, seq=True)
-        debug.info(f"5.1 action_seq_en shape: {action_seq_en.shape}\n")
         
         ### Compute reward prediction loss
-        debug.info(f"6.     Computing reward prediction loss")
         if self.reward:
             #z_a -> [1024, 50] action_seq_en -> [1024, 6]
             reward_pred = self.TACO.reward(torch.concat([z_a, action_seq_en], dim=-1))
-            debug.info(f"6.1 reward_pred shape: {reward_pred.shape}\n")
             reward_loss = F.mse_loss(reward_pred, reward)
         else:
             reward_loss = torch.tensor(0.)
         
         ### Compute TACO loss
-        debug.info(f"7.     Computing TACO loss")
         next_z_pos = self.TACO.encode(self.aug(next_obs.float()), ema=True)
-        debug.info(f"7.1 next_z_pos shape: {next_z_pos.shape}")
         curr_za = self.TACO.project_sa(z_a, action_seq_en) 
-        debug.info(f"7.2 curr_za shape: {curr_za.shape}")
         logits = self.TACO.compute_logits(curr_za, next_z_pos)
-        debug.info(f"7.3 logits shape: {logits.shape}")
         labels = torch.arange(logits.shape[0]).long().to(self.device)
-        debug.info(f"7.4 labels shape: {labels.shape}\n")
         taco_loss = self.cross_entropy_loss(logits, labels)
         
-        debug.info(f"END:       update_taco()\n")
         
         self.taco_opt.zero_grad()
         (taco_loss + curl_loss + reward_loss).backward()
@@ -400,8 +363,6 @@ class TACOAgent:
             return metrics
         
         batch = next(replay_iter)
-        debug.info(f"batch: {len(batch)}")
-        debug.info(f"batch[0]: {batch[0].shape}")
         obs, action, action_seq, reward, discount, next_obs, r_next_obs = utils.to_torch(
             batch, self.device)
 
@@ -423,10 +384,9 @@ class TACOAgent:
         metrics.update(self.update_actor(obs_en.detach(), step))
 
         # # update critic target
-        # utils.soft_update_params(self.critic, self.critic_target,self.critic_target_tau)
+        utils.soft_update_params(self.critic, self.critic_target,self.critic_target_tau)
         
         #update TACO
-        
         metrics.update(self.update_taco(obs, action, action_seq, r_next_obs, reward))
 
         return metrics
