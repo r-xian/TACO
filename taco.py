@@ -67,7 +67,6 @@ class TACO(nn.Module):
     """
     TACO Constrastive loss
     """
-
     def __init__(self, repr_dim, feature_dim, action_shape, latent_a_dim, hidden_dim, act_tok, encoder, multistep, device):
         super(TACO, self).__init__()
 
@@ -82,22 +81,17 @@ class TACO(nn.Module):
             nn.ReLU(inplace=True),
             nn.Linear(hidden_dim, feature_dim)
         )
-        summary(self.proj_sa.to(device=device), (1024, 56))
         
         self.act_tok = act_tok
         
         self.proj_s = nn.Sequential(nn.Linear(repr_dim, feature_dim),
                                    nn.LayerNorm(feature_dim), nn.Tanh())
-        summary(self.proj_s.to(device=device), (1024, 39200))
-        
-        
-        
+
         self.reward = nn.Sequential(
             nn.Linear(feature_dim + latent_a_dim*multistep, hidden_dim), 
             nn.ReLU(inplace=True),
             nn.Linear(hidden_dim, 1)
         )
-        summary(self.reward.to(device=device), (1024, 56))
         
         self.W = nn.Parameter(torch.rand(feature_dim, feature_dim))
         
@@ -132,8 +126,8 @@ class TACO(nn.Module):
         logits = torch.matmul(z_a, Wz)  # (B,B)
         logits = logits - torch.max(logits, 1)[0][:, None]
         return logits
-    
-    
+
+
 class Actor(nn.Module):
     def __init__(self, repr_dim, action_shape, feature_dim, hidden_dim):
         super().__init__()
@@ -194,6 +188,7 @@ class TACOAgent:
                  hidden_dim, critic_target_tau, num_expl_steps,
                  update_every_steps, stddev_schedule, stddev_clip, use_tb,
                  reward, multistep, latent_a_dim, curl):
+        #FIND THE ACTION_Shape and OBS_SHAPE
         self.device = device
         self.critic_target_tau = critic_target_tau
         self.update_every_steps = update_every_steps
@@ -202,6 +197,7 @@ class TACOAgent:
         self.stddev_schedule = stddev_schedule
         self.stddev_clip = stddev_clip
         
+        #boolean flags
         self.reward = reward
         self.multistep = multistep
         self.curl = curl
@@ -211,7 +207,7 @@ class TACOAgent:
             latent_a_dim = int(action_shape[0]*1.25)+1
         ### Create action embeddings
         self.act_tok = utils.ActionEncoding(action_shape[0], latent_a_dim, multistep)
-        summary(self.act_tok.to(device=device), (1024,3,1))
+        # summary(self.act_tok.to(device=device), (1024,3,1))
         
         self.encoder = Encoder(obs_shape, feature_dim).to(device)
         
@@ -224,8 +220,10 @@ class TACOAgent:
         self.TACO = TACO(self.encoder.repr_dim, feature_dim, action_shape, latent_a_dim, hidden_dim, self.act_tok, self.encoder, multistep, device).to(device)
         
         ### State & Action Encoders
+        
         parameters = itertools.chain(self.encoder.parameters(),
                                      self.act_tok.parameters(),)
+        
         self.encoder_opt = torch.optim.Adam(parameters, lr=encoder_lr)
         self.actor_opt = torch.optim.Adam(self.actor.parameters(), lr=lr)
         self.critic_opt = torch.optim.Adam(self.critic.parameters(), lr=lr)

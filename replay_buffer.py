@@ -150,54 +150,29 @@ class ReplayBuffer(IterableDataset):
             self._try_fetch()
         except:
             traceback.print_exc()
-        debug.info(f'START:         _sample()')
             
         self._samples_since_last_fetch += 1
         episode = self._sample_episode()
-        debug.info(f'Sample episode with {episode_len(episode)} transitions')
 
         # add +1 for the first dummy transition
-        debug.info(f'1.     calculate n_step')
         n_step = max(self._nstep, self._multistep)
-        debug.info(f'1.1 n_step {n_step}')
-        debug.info(f'1.2 self._multistep {self._multistep}')
-        debug.info(f'1.3 self._nstep {self._nstep}')
         
-        debug.info(f'2.     sample idx')
         idx = np.random.randint(0, episode_len(episode) - n_step + 1) + 1
-        debug.info(f'2.1 Sample idx {idx}')
         
         
         obs = episode['observation'][idx - 1]
         r_next_obs = episode['observation'][idx + self._multistep - 1]
         action = episode['action'][idx]
-        debug.info(f'3.     sampling obs, r_next_obs, action')
-        debug.info(f'3.1 Sample obs {obs.shape}')
-        debug.info(f'3.2 Sample r_next_obs {r_next_obs.shape}')
-        debug.info(f'3.3 Sample action {action.shape}')
         
-        debug.info(f'4.     sampling action_seq, reward, discount')
         action_seq = np.concatenate([episode['action'][idx+i][None, :] for i in range(self._multistep)])
         next_obs = episode['observation'][idx + self._nstep - 1]
-        debug.info(f'4.1 Sample action_seq {action_seq.shape}')
-        debug.info(f'4.2 Sample next_obs {next_obs.shape}')
-        
-        debug.info(f'5.     calculate reward and discount')
         reward = np.zeros_like(episode['reward'][idx])
         discount = np.ones_like(episode['discount'][idx])
-        debug.info(f'5.1 Sample reward zeros {reward.shape}')
-        debug.info(f'5.2 Sample discount ones {discount.shape}')
-        
-        for i in range(self._nstep):
-            step_reward = episode['reward'][idx + i]
-            reward += discount * step_reward
-            discount *= episode['discount'][idx + i] * self._discount
-        
-        debug.info(f'5.3 Sample reward calculated {reward.shape}')
-        debug.info(f'5.4 Sample discount calculated {discount.shape}')
-        debug.info(f'5.5 step_reward {step_reward.shape}')
-        
-        debug.info(f'END: _sample()')
+        for i in range(self._nstep): # multistep = 3
+            step_reward = episode['reward'][idx + i] # calculating across whole batch at each sequence
+            reward += discount * step_reward # disctount = 1
+            discount *= episode['discount'][idx + i] * self._discount # multitples next discount by the default discount value
+    
         return (obs, action, action_seq, reward, discount, next_obs, r_next_obs)
 
     def __iter__(self):
