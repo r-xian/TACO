@@ -19,9 +19,7 @@ from replay_buffer import ReplayBufferStorage, make_replay_loader
 from video import TrainVideoRecorder, VideoRecorder
 
 torch.backends.cudnn.benchmark = True
-import logging
-logging.basicConfig(level=logging.INFO)
-debug = logging.getLogger(__name__)
+
 
 def make_agent(obs_spec, action_spec, cfg):
     cfg.obs_shape = obs_spec.shape

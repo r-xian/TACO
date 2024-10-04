@@ -5,8 +5,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import utils
 import itertools
-import logging
-debug = logging.getLogger(__name__)
+
 
 class RandomShiftsAug(nn.Module):
     def __init__(self, pad):
@@ -310,8 +309,6 @@ class TACOAgent:
         
         obs_anchor = self.aug(obs.float())
         obs_pos = self.aug(obs.float())
-        
-        #z_a are single observations, same with z_pos
         z_a = self.TACO.encode(obs_anchor)
         z_pos = self.TACO.encode(obs_pos, ema=True)
         ### Compute CURL loss
@@ -347,7 +344,9 @@ class TACOAgent:
             metrics['curl_loss'] = curl_loss.item()
             metrics['taco_loss']  = taco_loss.item()
         return metrics
-        
+    
+    
+    
     def update(self, replay_iter, step):
         metrics = dict()
         if step % self.update_every_steps != 0:
@@ -368,16 +367,16 @@ class TACOAgent:
         if self.use_tb:
             metrics['batch_reward'] = reward.mean().item()
 
-        # # update critic
-        # metrics.update(self.update_critic(obs_en, action, reward, discount, next_obs_en, step))
+        # update critic
+        metrics.update(
+            self.update_critic(obs_en, action, reward, discount, next_obs_en, step))
 
-        # # update actor
-        # metrics.update(self.update_actor(obs_en.detach(), step))
+        # update actor
+        metrics.update(self.update_actor(obs_en.detach(), step))
 
-        # # update critic target
-        # utils.soft_update_params(self.critic, self.critic_target,self.critic_target_tau)
-        
-        #update TACO
+        # update critic target
+        utils.soft_update_params(self.critic, self.critic_target,
+                                 self.critic_target_tau)
         
         metrics.update(self.update_taco(obs, action, action_seq, r_next_obs, reward))
 

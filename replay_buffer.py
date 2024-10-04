@@ -9,8 +9,6 @@ import torch
 import torch.nn as nn
 from torch.utils.data import IterableDataset
 
-import logging
-debug = logging.getLogger(__name__)
 
 def episode_len(episode):
     # subtract -1 because the dummy first transition
@@ -150,45 +148,22 @@ class ReplayBuffer(IterableDataset):
             self._try_fetch()
         except:
             traceback.print_exc()
-            
         self._samples_since_last_fetch += 1
         episode = self._sample_episode()
-
         # add +1 for the first dummy transition
         n_step = max(self._nstep, self._multistep)
-        
-        print(f'episode_len(episode): {episode_len(episode)}')
-        print(f'n_step: {n_step}')
         idx = np.random.randint(0, episode_len(episode) - n_step + 1) + 1
-        print(f'idx: {idx}')
-        
-        
         obs = episode['observation'][idx - 1]
         r_next_obs = episode['observation'][idx + self._multistep - 1]
         action = episode['action'][idx]
-        
         action_seq = np.concatenate([episode['action'][idx+i][None, :] for i in range(self._multistep)])
         next_obs = episode['observation'][idx + self._nstep - 1]
-        
-        print(f'episode[\'reward\'][idx]: {episode["reward"][idx]}')
-        print(f'episode[\'discount\'][idx]: {episode["discount"][idx]}')
-        print(f'shape of episode[\'reward\'][idx]: {episode["reward"][idx].shape}')
-        print(f'shape of episode[\'discount\'][idx]: {episode["discount"][idx].shape}')
-        
         reward = np.zeros_like(episode['reward'][idx])
-        print(f'shape of reward: {reward.shape}')
-        print(f'reward contents: {reward}')
         discount = np.ones_like(episode['discount'][idx])
-        print(f'shape of discount: {episode["discount"][idx].shape}')
-        print(f'discount contents: {episode["discount"][idx]}')
-        
         for i in range(self._nstep):
-            step_reward = episode['reward'][idx + i] # the current step reward?
+            step_reward = episode['reward'][idx + i]
             reward += discount * step_reward
-            discount *= episode['discount'][idx + i] * self._discount
-        print(f'reward after loop: {reward}')
-        print(f'discount after loop: {discount}')
-        
+
         return (obs, action, action_seq, reward, discount, next_obs, r_next_obs)
 
     def __iter__(self):
