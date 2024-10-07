@@ -47,6 +47,6 @@ hydra:
     cpus_per_task: 1
     gpus_per_node: 1
     tasks_per_node: 1
-    mem_gb: 30
+    mem_gb: 10
     nodes: 1
     submitit_folder: ./exp/${now:%Y.%m.%d}/${now:%H%M%S}_${agent_cfg.experiment}/.slurm
