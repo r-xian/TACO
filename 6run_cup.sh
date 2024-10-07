@@ -4,7 +4,7 @@
 #SBATCH --cpus-per-task=1
 #SBATCH --mem=10G
 #SBATCH --job-name=TACO_cup
-#SBATCH --gres=gpu:gpu:nvidia_a100_80gb_pcie_1g.10gb
+#SBATCH --gres=gpu:nvidia_a100_80gb_pcie_1g.10gb
 #SBATCH --time=72:00:00
 #SBATCH --partition=gpu_cuda
 #SBATCH --account=a_lead
