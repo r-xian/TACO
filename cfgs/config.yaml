@@ -10,9 +10,9 @@ frame_stack: 3
 action_repeat: 2
 discount: 0.99
 # train settings
-num_seed_frames: 4000
+num_seed_frames: 1000
 # eval
-eval_every_frames: 10000
+eval_every_frames: 5000
 num_eval_episodes: 10
 # snapshot
 save_snapshot: true
@@ -38,7 +38,7 @@ exp_name: default
 
 hydra:
   run:
-    dir: ./exp_local/${exp_name}
+    dir: ./output/${exp_name}
   sweep:
     dir: ./exp/${now:%Y.%m.%d}/${now:%H%M}_${agent_cfg.experiment}
     subdir: ${hydra.job.num}
