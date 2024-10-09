@@ -30,11 +30,13 @@ def make_agent(obs_spec, action_spec, cfg):
 class Workspace:
     def __init__(self, cfg):
         self.work_dir = Path.cwd()
+        
         print(f'workspace: {self.work_dir}')
 
         self.cfg = cfg
         utils.set_seed_everywhere(cfg.seed)
         self.device = torch.device(cfg.device)
+        
         self.setup()
 
         self.agent = make_agent(self.train_env.observation_spec(),
@@ -93,10 +95,12 @@ class Workspace:
     def eval(self):
         step, episode, total_reward, success = 0, 0, 0, 0
         eval_until_episode = utils.Until(self.cfg.num_eval_episodes)
+        all_ep_rewards = []
 
         while eval_until_episode(episode):
             time_step = self.eval_env.reset()
             self.video_recorder.init(self.eval_env, enabled=(episode == 0))
+            episode_reward = 0
             while not time_step.last():
                 with torch.no_grad(), utils.eval_mode(self.agent):
                     action = self.agent.act(time_step.observation,
@@ -105,13 +109,19 @@ class Workspace:
                 time_step = self.eval_env.step(action)
                 self.video_recorder.record(self.eval_env)
                 total_reward += time_step.reward
+                episode_reward += time_step.reward
                 step += 1
 
             episode += 1
             self.video_recorder.save(f'{self.global_frame}.mp4')
+            all_ep_rewards.append(episode_reward)
 
         with self.logger.log_and_dump_ctx(self.global_frame, ty='eval') as log:
-            log('episode_reward', total_reward / episode)
+            mean_ep_reward = np.mean(all_ep_rewards)
+            best_ep_reward = np.max(all_ep_rewards)
+            log('best_episode_reward', best_ep_reward)
+            log('mean_episode_reward', mean_ep_reward)
+            # log('episode_reward', total_reward / episode)
             log('episode_length', step * self.cfg.action_repeat / episode)
             log('episode', self.global_episode)
             log('step', self.global_step)
