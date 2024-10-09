@@ -7,6 +7,7 @@ import torch
 import torchvision
 from termcolor import colored
 from torch.utils.tensorboard import SummaryWriter
+import time
 
 COMMON_TRAIN_FORMAT = [('frame', 'F', 'int'), ('step', 'S', 'int'),
                        ('episode', 'E', 'int'), ('episode_length', 'L', 'int'),
@@ -128,7 +129,9 @@ class Logger(object):
                                     formating=COMMON_EVAL_FORMAT)
         if use_tb:
             self._sw = SummaryWriter(str(log_dir / 'tb'))
-            wandb.init(project="thesis_method", name=f'TACO_{args.task_name}_seed_{args.seed}')
+            ts = time.gmtime()
+            ts = time.strftime("%d%b-%H%M", ts)
+            wandb.init(project="thesis_method", name=f'TACO_{args.task_name}_seed_{args.seed}_{ts}')
         else:
             self._sw = None
     

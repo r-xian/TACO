@@ -29,6 +29,7 @@ def make_agent(obs_spec, action_spec, cfg):
 
 class Workspace:
     def __init__(self, cfg):
+        print(cfg)
         self.work_dir = Path.cwd()
         
         print(f'workspace: {self.work_dir}')
