@@ -163,3 +163,4 @@ cython_debug/
 # output files
 *.error
 *.out
+output/
