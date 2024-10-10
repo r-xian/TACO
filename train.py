@@ -120,9 +120,10 @@ class Workspace:
         with self.logger.log_and_dump_ctx(self.global_frame, ty='eval') as log:
             mean_ep_reward = np.mean(all_ep_rewards)
             best_ep_reward = np.max(all_ep_rewards)
+            for ep, reward in enumerate(all_ep_rewards):
+                log(f'episode_{ep+1}_reward', reward)
             log('best_episode_reward', best_ep_reward)
             log('mean_episode_reward', mean_ep_reward)
-            # log('episode_reward', total_reward / episode)
             log('episode_length', step * self.cfg.action_repeat / episode)
             log('episode', self.global_episode)
             log('step', self.global_step)
