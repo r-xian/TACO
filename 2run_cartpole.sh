@@ -2,9 +2,9 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=1
-#SBATCH --mem=10G
+#SBATCH --mem=16G
 #SBATCH --job-name=TACO_cartpole
-#SBATCH --gres=gpu:nvidia_a100_80gb_pcie_1g.10gb
+#SBATCH --gres=gpu:h100
 #SBATCH --time=72:00:00
 #SBATCH --partition=gpu_cuda
 #SBATCH --account=a_lead
@@ -19,5 +19,5 @@ cd /scratch/user/s4642506/TACO
 srun python ./train.py agent=taco task=cartpole_swingup seed=1 exp_name=cartpole_1
 srun python ./train.py agent=taco task=cartpole_swingup seed=2 exp_name=cartpole_2
 srun python ./train.py agent=taco task=cartpole_swingup seed=3 exp_name=cartpole_3
-srun python ./train.py agent=taco task=cartpole_swingup seed=4 exp_name=cartpole_4
-srun python ./train.py agent=taco task=cartpole_swingup seed=5 exp_name=cartpole_5
+#srun python ./train.py agent=taco task=cartpole_swingup seed=4 exp_name=cartpole_4
+#srun python ./train.py agent=taco task=cartpole_swingup seed=5 exp_name=cartpole_5

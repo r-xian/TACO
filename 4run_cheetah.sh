@@ -2,9 +2,9 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=1
-#SBATCH --mem=10G
+#SBATCH --mem=16G
 #SBATCH --job-name=TACO_cheetah
-#SBATCH --gres=gpu:nvidia_a100_80gb_pcie_1g.10gb
+#SBATCH --gres=gpu:h100
 #SBATCH --time=72:00:00
 #SBATCH --partition=gpu_cuda
 #SBATCH --account=a_lead
